@@ -106,6 +106,7 @@ spineModel.root.traverse((obj) => {
 });
 
 let activeRegion = null;
+let isPathological = false;
 const DIM_COLOR = new THREE.Color(0x8a8f8f);
 
 function setRegionEmphasis(regionId) {
@@ -211,6 +212,8 @@ function resetView() {
   setRegionEmphasis(null);
   updateRegionButtons(null);
   showInfoDefault();
+  updateStructureLabelVisibility();
+  updateCurveLabelVisibility();
   focusOnBox(getWholeSpineBox(), DEFAULT_DIR);
 }
 
@@ -271,9 +274,25 @@ const structureLabelObjects = {};
   });
 })();
 
-function setLabelCategoryVisible(key, visible) {
-  if (structureLabelObjects[key]) structureLabelObjects[key].visible = visible;
+const labelCategoryChecked = {};
+Object.keys(STRUCTURES).forEach((k) => (labelCategoryChecked[k] = true));
+
+// Die Strukturbeschriftungen sind fest an L3/L4-L5 verankert und werden nur
+// gezeigt, sobald ein Abschnitt fokussiert ist -- so überlappen sie in der
+// Gesamtübersicht nie mit den Krümmungs-Labels, unabhängig von Fenstergröße.
+function updateStructureLabelVisibility() {
+  const regionFocused = activeRegion !== null || isPathological;
+  Object.keys(structureLabelObjects).forEach((key) => {
+    structureLabelObjects[key].visible = regionFocused && labelCategoryChecked[key];
+  });
 }
+
+function setLabelCategoryVisible(key, visible) {
+  labelCategoryChecked[key] = visible;
+  updateStructureLabelVisibility();
+}
+
+updateStructureLabelVisibility();
 
 // ----------------------------------------------------------------------------
 // Krümmungs-Overlay Sichtbarkeit + Apex-Beschriftungen
@@ -296,12 +315,26 @@ spineModel.curveGuides.forEach((g, regionId) => {
   const obj = new CSS2DObject(el);
   obj.position.copy(g.apexPoint);
   scene.add(obj);
-  curveApexLabels.push(obj);
+  curveApexLabels.push({ obj, regionId });
 });
+
+let curvatureLabelsChecked = true;
+
+// Sobald ein Abschnitt fokussiert ist (oder der Pathologie-Modus aktiv ist),
+// zeigt das Info-Panel den passenden Krümmungswinkel bereits an -- daher wird
+// die zugehörige Apex-Beschriftung im 3D-Raum ausgeblendet, damit sie nicht
+// mit den Strukturbeschriftungen (Wirbelkörper/Bandscheibe/...) kollidiert.
+function updateCurveLabelVisibility() {
+  curveApexLabels.forEach(({ obj, regionId }) => {
+    const suppressed = (activeRegion !== null && regionId === activeRegion) || (isPathological && regionId === 'lumbar');
+    obj.visible = curvatureLabelsChecked && !suppressed;
+  });
+}
 
 document.getElementById('toggle-curvature').addEventListener('change', (e) => {
   spineModel.guideGroup.visible = e.target.checked;
-  curveApexLabels.forEach((o) => (o.visible = e.target.checked));
+  curvatureLabelsChecked = e.target.checked;
+  updateCurveLabelVisibility();
 });
 
 // ----------------------------------------------------------------------------
@@ -333,6 +366,8 @@ function onRegionClick(id) {
   setRegionEmphasis(id);
   updateRegionButtons(id);
   showInfoRegion(id);
+  updateStructureLabelVisibility();
+  updateCurveLabelVisibility();
   const box = getRegionBox(id);
   if (box) focusOnBox(box, DEFAULT_DIR);
 }
@@ -439,8 +474,6 @@ const herniationLevel = PATHOLOGIES.herniation.level.replace('/', '-');
 const stenosisLevel = PATHOLOGIES.stenosis.level.replace('/', '-');
 const stenosisVertebraIds = PATHOLOGIES.stenosis.level.split('/'); // ['L3','L4']
 
-let isPathological = false;
-
 function setPathologyMode(active) {
   isPathological = active;
 
@@ -507,10 +540,14 @@ function setPathologyMode(active) {
     activeRegion = null;
     updateRegionButtons(null);
     setRegionEmphasis(null);
+    updateStructureLabelVisibility();
+    updateCurveLabelVisibility();
     const box = getRegionBox('lumbar');
     if (box) focusOnBox(box, LATERAL_DIR);
   } else {
     showInfoDefault();
+    updateStructureLabelVisibility();
+    updateCurveLabelVisibility();
   }
 }
 
