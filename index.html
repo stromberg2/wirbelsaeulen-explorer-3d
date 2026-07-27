@@ -94,6 +94,14 @@
       <button type="button" class="btn-golf-play" id="golf-play-btn">
         <i data-lucide="play"></i> <span>Abspielen</span>
       </button>
+      <div class="golf-speed-control">
+        <label for="golf-speed-slider">
+          <i data-lucide="gauge"></i> <span>Geschwindigkeit</span>
+          <strong id="golf-speed-value">1×</strong>
+        </label>
+        <input type="range" id="golf-speed-slider" min="0.25" max="2" step="0.25" value="1" aria-label="Animationsgeschwindigkeit" />
+        <div class="golf-speed-ticks"><span>0.25×</span><span>1×</span><span>2×</span></div>
+      </div>
       <div class="golf-readout" id="golf-readout">
         <div class="golf-readout-row"><span>Rotation BWS</span><strong id="golf-read-thoracic">0°</strong></div>
         <div class="golf-readout-row"><span>Rotation LWS</span><strong id="golf-read-lumbar">0°</strong></div>

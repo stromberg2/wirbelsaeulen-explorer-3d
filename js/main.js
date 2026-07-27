@@ -556,12 +556,33 @@ const golfPivot = spineModel.vertebrae.get('Os sacrum').group.position.clone();
 
 const golfPhaseListEl = document.getElementById('golf-phase-list');
 const golfPlayBtn = document.getElementById('golf-play-btn');
+const golfSpeedSlider = document.getElementById('golf-speed-slider');
+const golfSpeedValueEl = document.getElementById('golf-speed-value');
 
 let golfPhaseIndex = 0;
 let golfPlaying = false;
 let golfAnim = null;
 let currentGolfPose = GOLF_SWING_PHASES[0];
+let golfSpeed = 1;
 const GOLF_PHASE_DURATION = 1500;
+
+function formatGolfSpeed(value) {
+  return `${value % 1 === 0 ? value.toFixed(0) : value.toFixed(2).replace(/0$/, '')}\u00d7`;
+}
+
+golfSpeedSlider.addEventListener('input', (e) => {
+  golfSpeed = parseFloat(e.target.value);
+  golfSpeedValueEl.textContent = formatGolfSpeed(golfSpeed);
+  if (golfAnim) {
+    // Restwegstrecke der laufenden Animation bei der neuen Geschwindigkeit fortsetzen,
+    // ohne den aktuellen Zwischenstand der Pose zu verspringen.
+    const now = performance.now();
+    const elapsedFrac = Math.min((now - golfAnim.startTime) / golfAnim.duration, 1);
+    const newDuration = GOLF_PHASE_DURATION / golfSpeed;
+    golfAnim.duration = newDuration;
+    golfAnim.startTime = now - elapsedFrac * newDuration;
+  }
+});
 
 GOLF_SWING_PHASES.forEach((phase, idx) => {
   const btn = document.createElement('button');
@@ -637,7 +658,7 @@ function goToGolfPhase(index, animateTransition = true) {
     fromPose: currentGolfPose,
     toPose: targetPose,
     startTime: performance.now(),
-    duration: GOLF_PHASE_DURATION,
+    duration: GOLF_PHASE_DURATION / golfSpeed,
     targetIndex: clamped,
   };
 }
