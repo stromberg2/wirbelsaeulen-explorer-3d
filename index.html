@@ -48,10 +48,13 @@
     <div class="header-actions">
       <div class="mode-switch" role="group" aria-label="Anatomischer Zustand">
         <button type="button" class="mode-btn is-active" data-mode="healthy" id="btn-healthy">
-          <i data-lucide="check-circle-2"></i> Gesund
+          <i data-lucide="check-circle-2"></i> <span>Gesund</span>
         </button>
         <button type="button" class="mode-btn" data-mode="pathological" id="btn-pathological">
-          <i data-lucide="alert-triangle"></i> Pathologisch
+          <i data-lucide="alert-triangle"></i> <span>Pathologisch</span>
+        </button>
+        <button type="button" class="mode-btn" data-mode="golf" id="btn-golf">
+          <i data-lucide="flag"></i> <span>Golfschwung</span>
         </button>
       </div>
       <button type="button" class="icon-btn" id="theme-toggle" data-theme-toggle aria-label="Farbmodus wechseln">
@@ -63,7 +66,7 @@
   <!-- ============ SIDEBAR (Regionen & Kontrollen) ============ -->
   <aside class="sidebar" aria-label="Wirbelsäulenabschnitte und Anzeigeoptionen">
 
-    <section class="panel">
+    <section class="panel" id="panel-regions">
       <h2 class="panel-title"><i data-lucide="layers"></i> Abschnitte</h2>
       <div class="region-list" id="region-list" role="list"></div>
       <button type="button" class="btn-reset" id="btn-reset-region">
@@ -71,7 +74,7 @@
       </button>
     </section>
 
-    <section class="panel">
+    <section class="panel" id="panel-curvature">
       <h2 class="panel-title"><i data-lucide="waves"></i> Krümmungen</h2>
       <label class="toggle-row">
         <input type="checkbox" id="toggle-curvature" checked />
@@ -80,9 +83,24 @@
       <div class="curve-legend" id="curve-legend"></div>
     </section>
 
-    <section class="panel">
+    <section class="panel" id="panel-labels">
       <h2 class="panel-title"><i data-lucide="tag"></i> Beschriftungen</h2>
       <div class="label-toggles" id="label-toggles"></div>
+    </section>
+
+    <section class="panel" id="panel-golf" hidden>
+      <h2 class="panel-title"><i data-lucide="flag"></i> Golfschwung-Phasen</h2>
+      <div class="golf-phase-list" id="golf-phase-list" role="list"></div>
+      <button type="button" class="btn-golf-play" id="golf-play-btn">
+        <i data-lucide="play"></i> <span>Abspielen</span>
+      </button>
+      <div class="golf-readout" id="golf-readout">
+        <div class="golf-readout-row"><span>Rotation BWS</span><strong id="golf-read-thoracic">0°</strong></div>
+        <div class="golf-readout-row"><span>Rotation LWS</span><strong id="golf-read-lumbar">0°</strong></div>
+        <div class="golf-readout-row"><span>Rotation HWS</span><strong id="golf-read-cervical">0°</strong></div>
+        <div class="golf-readout-row golf-readout-xfactor"><span>X-Faktor (BWS−LWS)</span><strong id="golf-read-xfactor">0°</strong></div>
+      </div>
+      <p class="golf-disclaimer">Vereinfachte, schematische Darstellung — Winkelwerte sind didaktische Näherungen aus der Literatur, keine exakten Einzelmessungen.</p>
     </section>
 
   </aside>
@@ -155,6 +173,14 @@
         <h4>Funktionelle Auswirkungen</h4>
         <ul id="stenosis-impact"></ul>
       </article>
+    </div>
+
+    <div id="info-golf" class="info-block" hidden>
+      <h2 class="panel-title" id="info-golf-title"><i data-lucide="flag"></i> Golfschwung</h2>
+      <p class="info-lead">Beim Golfschwung dreht sich die Wirbelsäule abschnittsweise unterschiedlich stark um ihre Längsachse — die Rotationsdifferenz zwischen Brust- und Lendenwirbelsäule wird im Golfsport als <strong>„X-Faktor“</strong> bezeichnet.</p>
+      <div class="info-tag" id="info-golf-phase-tag"></div>
+      <ul class="info-fact-list" id="info-golf-facts"></ul>
+      <div class="info-golf-sources" id="info-golf-sources"></div>
     </div>
 
     <div class="legend panel">

@@ -148,6 +148,7 @@ svg { display: block; }
 .mode-btn svg, .mode-btn i { width: 15px; height: 15px; }
 .mode-btn.is-active { background: var(--color-primary); color: var(--color-text-inverse); }
 .mode-btn[data-mode='pathological'].is-active { background: var(--color-danger); }
+.mode-btn[data-mode='golf'].is-active { background: var(--color-thoracic); }
 
 .icon-btn {
   display: flex; align-items: center; justify-content: center;
@@ -230,6 +231,55 @@ svg { display: block; }
 .label-toggle-item { display: flex; align-items: center; gap: 0.55rem; font-size: 0.8rem; cursor: pointer; }
 .label-toggle-item input { width: 16px; height: 16px; accent-color: var(--label-color, var(--color-primary)); }
 .label-toggle-dot { width: 10px; height: 10px; border-radius: 3px; background: var(--label-color); flex-shrink: 0; }
+
+/* ---- Golfschwung-Panel ---- */
+.golf-phase-list { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+.golf-phase-btn {
+  display: flex; align-items: center; gap: 0.6rem;
+  width: 100%; padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--color-surface-2);
+  text-align: left;
+  transition: background var(--transition-ui), border-color var(--transition-ui), transform var(--transition-ui);
+}
+.golf-phase-btn:hover { transform: translateX(2px); }
+.golf-phase-btn.is-active {
+  border-color: var(--color-thoracic);
+  background: color-mix(in oklab, var(--color-thoracic) 14%, var(--color-surface));
+}
+.golf-phase-num {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--color-surface-offset); font-size: 0.68rem; font-weight: 700; color: var(--color-text-muted);
+}
+.golf-phase-btn.is-active .golf-phase-num { background: var(--color-thoracic); color: var(--color-text-inverse); }
+.golf-phase-text { display: flex; flex-direction: column; line-height: 1.25; flex: 1; min-width: 0; }
+.golf-phase-text strong { font-size: 0.8rem; font-weight: 600; }
+.golf-phase-text span { font-size: 0.68rem; color: var(--color-text-muted); }
+
+.btn-golf-play {
+  display: flex; align-items: center; justify-content: center; gap: 0.45rem;
+  width: 100%; padding: 0.6rem;
+  font-size: 0.8rem; font-weight: 600; color: var(--color-text-inverse);
+  background: var(--color-primary); border-radius: var(--radius-md);
+  margin-bottom: 0.8rem;
+  transition: background var(--transition-ui);
+}
+.btn-golf-play:hover { background: var(--color-primary-hover); }
+.btn-golf-play i, .btn-golf-play svg { width: 15px; height: 15px; }
+
+.golf-readout { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.7rem; background: var(--color-surface-2); border-radius: var(--radius-md); margin-bottom: 0.7rem; }
+.golf-readout-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.74rem; color: var(--color-text-muted); }
+.golf-readout-row strong { font-family: var(--font-display); font-size: 0.82rem; color: var(--color-text); font-weight: 700; }
+.golf-readout-xfactor { padding-top: 0.45rem; border-top: 1px dashed var(--color-border); }
+.golf-readout-xfactor strong { color: var(--color-thoracic); }
+
+.golf-disclaimer { font-size: 0.68rem; line-height: 1.45; color: var(--color-text-faint); }
+
+.info-golf-sources { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
+.info-golf-sources a { font-size: 0.7rem; color: var(--color-primary); text-decoration: none; border-bottom: 1px dotted var(--color-primary); }
+.info-golf-sources a:hover { color: var(--color-primary-hover); }
 
 /* ---- Viewport ---- */
 .viewport-wrap { grid-area: viewport; position: relative; overflow: hidden; }

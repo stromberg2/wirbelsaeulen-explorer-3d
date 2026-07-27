@@ -4,8 +4,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { REGIONS, REGION_ORDER, STRUCTURES, PATHOLOGIES } from './spineData.js';
+import { REGIONS, REGION_ORDER, STRUCTURES, PATHOLOGIES, GOLF_SWING_PHASES } from './spineData.js';
 import { buildSpineModel } from './spineBuilder.js';
+import { captureBaseTransforms, applyGolfPose, lerpPose } from './golfSwing.js';
 
 // ----------------------------------------------------------------------------
 // Theme (hell/dunkel)
@@ -107,6 +108,7 @@ spineModel.root.traverse((obj) => {
 
 let activeRegion = null;
 let isPathological = false;
+let appMode = 'healthy'; // 'healthy' | 'pathological' | 'golf'
 const DIM_COLOR = new THREE.Color(0x8a8f8f);
 
 function setRegionEmphasis(regionId) {
@@ -206,8 +208,13 @@ function focusOnBox(box, direction) {
 const DEFAULT_DIR = new THREE.Vector3(1, 0.16, 0.62).normalize();
 const LATERAL_DIR = new THREE.Vector3(1, 0.05, 0).normalize();
 const FRONT_DIR = new THREE.Vector3(0.02, 0.05, 1).normalize();
+const GOLF_DIR = new THREE.Vector3(0.42, 1.05, 0.85).normalize();
 
 function resetView() {
+  if (appMode === 'golf') {
+    focusOnBox(getWholeSpineBox(), GOLF_DIR);
+    return;
+  }
   activeRegion = null;
   setRegionEmphasis(null);
   updateRegionButtons(null);
@@ -417,11 +424,19 @@ Object.values(STRUCTURES).forEach((s) => {
 const infoDefault = document.getElementById('info-default');
 const infoRegion = document.getElementById('info-region');
 const infoPathology = document.getElementById('info-pathology');
+const infoGolf = document.getElementById('info-golf');
 
 function hideAllInfo() {
   infoDefault.hidden = true;
   infoRegion.hidden = true;
   infoPathology.hidden = true;
+  infoGolf.hidden = true;
+}
+
+function showInfoGolf() {
+  hideAllInfo();
+  infoGolf.hidden = false;
+  if (window.lucide) lucide.createIcons();
 }
 
 function showInfoDefault() {
@@ -468,13 +483,13 @@ PATHOLOGIES.stenosis.functionalImpact.forEach((t) => {
 });
 
 // ----------------------------------------------------------------------------
-// Pathologie-Modus (Gesund ⇄ Pathologisch)
+// Pathologie-Visuals (Gesund ⇄ Pathologisch) — reine Geometrie-/Materialänderung
 // ----------------------------------------------------------------------------
 const herniationLevel = PATHOLOGIES.herniation.level.replace('/', '-');
 const stenosisLevel = PATHOLOGIES.stenosis.level.replace('/', '-');
 const stenosisVertebraIds = PATHOLOGIES.stenosis.level.split('/'); // ['L3','L4']
 
-function setPathologyMode(active) {
+function applyPathologyVisuals(active) {
   isPathological = active;
 
   // --- Bandscheibenvorfall an L4/L5 ---
@@ -531,28 +546,190 @@ function setPathologyMode(active) {
       mesh.material.color.set(0xf5e6a8);
     }
   });
+}
 
-  document.getElementById('btn-healthy').classList.toggle('is-active', !active);
-  document.getElementById('btn-pathological').classList.toggle('is-active', active);
+// ----------------------------------------------------------------------------
+// Golfschwung-Modus — Wirbelsäulenbewegung während des Golfschwungs
+// ----------------------------------------------------------------------------
+const golfBaseTransforms = captureBaseTransforms(spineModel);
+const golfPivot = spineModel.vertebrae.get('Os sacrum').group.position.clone();
 
-  if (active) {
+const golfPhaseListEl = document.getElementById('golf-phase-list');
+const golfPlayBtn = document.getElementById('golf-play-btn');
+
+let golfPhaseIndex = 0;
+let golfPlaying = false;
+let golfAnim = null;
+let currentGolfPose = GOLF_SWING_PHASES[0];
+const GOLF_PHASE_DURATION = 1500;
+
+GOLF_SWING_PHASES.forEach((phase, idx) => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'golf-phase-btn';
+  btn.dataset.phaseIndex = String(idx);
+  btn.innerHTML = `<span class="golf-phase-num">${idx + 1}</span><span class="golf-phase-text"><strong>${phase.label}</strong><span>${phase.sub}</span></span>`;
+  btn.addEventListener('click', () => {
+    golfPlaying = false;
+    updateGolfPlayButton();
+    goToGolfPhase(idx, true);
+  });
+  golfPhaseListEl.appendChild(btn);
+});
+
+function updateGolfPhaseUI(idx) {
+  golfPhaseListEl.querySelectorAll('.golf-phase-btn').forEach((btn) => {
+    btn.classList.toggle('is-active', Number(btn.dataset.phaseIndex) === idx);
+  });
+}
+
+function updateGolfReadout(pose) {
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `${val >= 0 ? '+' : ''}${Math.round(val)}°`;
+  };
+  set('golf-read-thoracic', pose.axial.thoracic);
+  set('golf-read-lumbar', pose.axial.lumbar);
+  set('golf-read-cervical', pose.axial.cervical);
+  set('golf-read-xfactor', pose.axial.thoracic - pose.axial.lumbar);
+}
+
+function updateGolfInfoText(idx) {
+  const phase = GOLF_SWING_PHASES[idx];
+  document.getElementById('info-golf-phase-tag').textContent = `${idx + 1} / ${GOLF_SWING_PHASES.length} · ${phase.label}`;
+  const factsEl = document.getElementById('info-golf-facts');
+  factsEl.innerHTML = '';
+  phase.facts.forEach((f) => {
+    const li = document.createElement('li');
+    li.textContent = f;
+    factsEl.appendChild(li);
+  });
+  const sourcesEl = document.getElementById('info-golf-sources');
+  sourcesEl.innerHTML = '';
+  phase.sources.forEach((s) => {
+    const a = document.createElement('a');
+    a.href = s.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = s.label;
+    sourcesEl.appendChild(a);
+  });
+}
+
+function renderGolfPose(pose) {
+  applyGolfPose(spineModel, golfBaseTransforms, golfPivot, pose);
+  updateGolfReadout(pose);
+}
+
+function goToGolfPhase(index, animateTransition = true) {
+  const total = GOLF_SWING_PHASES.length;
+  const clamped = ((index % total) + total) % total;
+  const targetPose = GOLF_SWING_PHASES[clamped];
+  if (!animateTransition) {
+    currentGolfPose = targetPose;
+    renderGolfPose(targetPose);
+    golfPhaseIndex = clamped;
+    updateGolfPhaseUI(clamped);
+    updateGolfInfoText(clamped);
+    return;
+  }
+  golfAnim = {
+    fromPose: currentGolfPose,
+    toPose: targetPose,
+    startTime: performance.now(),
+    duration: GOLF_PHASE_DURATION,
+    targetIndex: clamped,
+  };
+}
+
+function updateGolfPlayButton() {
+  golfPlayBtn.innerHTML = golfPlaying
+    ? '<i data-lucide="pause"></i> <span>Pausieren</span>'
+    : '<i data-lucide="play"></i> <span>Abspielen</span>';
+  if (window.lucide) lucide.createIcons();
+}
+
+golfPlayBtn.addEventListener('click', () => {
+  golfPlaying = !golfPlaying;
+  updateGolfPlayButton();
+  if (golfPlaying && !golfAnim) {
+    goToGolfPhase(golfPhaseIndex + 1, true);
+  }
+});
+
+function enterGolfMode() {
+  activeRegion = null;
+  updateRegionButtons(null);
+  setRegionEmphasis(null);
+  spineModel.guideGroup.visible = false;
+  spineModel.canalGroup.visible = false;
+  Object.values(structureLabelObjects).forEach((o) => (o.visible = false));
+  curveApexLabels.forEach(({ obj }) => (obj.visible = false));
+  golfPhaseIndex = 0;
+  golfPlaying = false;
+  updateGolfPlayButton();
+  goToGolfPhase(0, false);
+  showInfoGolf();
+  focusOnBox(getWholeSpineBox(), GOLF_DIR);
+}
+
+function exitGolfMode() {
+  golfPlaying = false;
+  golfAnim = null;
+  updateGolfPlayButton();
+  golfBaseTransforms.forEach((base, group) => {
+    group.position.copy(base.position);
+    group.quaternion.copy(base.quaternion);
+  });
+  spineModel.canalGroup.visible = true;
+  spineModel.guideGroup.visible = document.getElementById('toggle-curvature').checked;
+}
+
+// ----------------------------------------------------------------------------
+// App-Modus (Gesund ⇄ Pathologisch ⇄ Golfschwung)
+// ----------------------------------------------------------------------------
+function setAppMode(mode) {
+  if (mode === appMode) return;
+  const prevMode = appMode;
+  appMode = mode;
+
+  if (prevMode === 'golf') exitGolfMode();
+
+  applyPathologyVisuals(mode === 'pathological');
+
+  document.getElementById('btn-healthy').classList.toggle('is-active', mode === 'healthy');
+  document.getElementById('btn-pathological').classList.toggle('is-active', mode === 'pathological');
+  document.getElementById('btn-golf').classList.toggle('is-active', mode === 'golf');
+
+  document.getElementById('panel-regions').hidden = mode === 'golf';
+  document.getElementById('panel-curvature').hidden = mode === 'golf';
+  document.getElementById('panel-labels').hidden = mode === 'golf';
+  document.getElementById('panel-golf').hidden = mode !== 'golf';
+
+  if (mode === 'golf') {
+    enterGolfMode();
+    return;
+  }
+
+  activeRegion = null;
+  updateRegionButtons(null);
+  setRegionEmphasis(null);
+  updateStructureLabelVisibility();
+  updateCurveLabelVisibility();
+
+  if (mode === 'pathological') {
     showInfoPathology();
-    activeRegion = null;
-    updateRegionButtons(null);
-    setRegionEmphasis(null);
-    updateStructureLabelVisibility();
-    updateCurveLabelVisibility();
     const box = getRegionBox('lumbar');
     if (box) focusOnBox(box, LATERAL_DIR);
   } else {
     showInfoDefault();
-    updateStructureLabelVisibility();
-    updateCurveLabelVisibility();
+    focusOnBox(getWholeSpineBox(), DEFAULT_DIR);
   }
 }
 
-document.getElementById('btn-healthy').addEventListener('click', () => setPathologyMode(false));
-document.getElementById('btn-pathological').addEventListener('click', () => setPathologyMode(true));
+document.getElementById('btn-healthy').addEventListener('click', () => setAppMode('healthy'));
+document.getElementById('btn-pathological').addEventListener('click', () => setAppMode('pathological'));
+document.getElementById('btn-golf').addEventListener('click', () => setAppMode('golf'));
 
 // ----------------------------------------------------------------------------
 // View-Controls
@@ -574,6 +751,21 @@ function animate(now) {
     camera.position.lerpVectors(cameraAnim.startPos, cameraAnim.endPos, e);
     controls.target.lerpVectors(cameraAnim.startTarget, cameraAnim.endTarget, e);
     if (t >= 1) cameraAnim = null;
+  }
+
+  if (golfAnim) {
+    const t = Math.min((now - golfAnim.startTime) / golfAnim.duration, 1);
+    const e = easeInOutCubic(t);
+    const pose = lerpPose(golfAnim.fromPose, golfAnim.toPose, e);
+    currentGolfPose = pose;
+    renderGolfPose(pose);
+    if (t >= 1) {
+      golfPhaseIndex = golfAnim.targetIndex;
+      updateGolfPhaseUI(golfPhaseIndex);
+      updateGolfInfoText(golfPhaseIndex);
+      golfAnim = null;
+      if (golfPlaying) goToGolfPhase(golfPhaseIndex + 1, true);
+    }
   }
 
   controls.update();

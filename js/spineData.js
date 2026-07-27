@@ -259,3 +259,99 @@ export const PATHOLOGIES = {
     ],
   },
 };
+
+// ----------------------------------------------------------------------------
+// Golfschwung — Wirbelsäulenbewegung in fünf Phasen (vereinfachtes,
+// schematisches Modell auf Basis qualitativer biomechanischer Literatur).
+// „axial“ = Rotation um die Längsachse je Abschnitt in Grad, ABSOLUT bezogen
+// auf das Kreuz-/Steißbein als rotatorischen Fixpunkt (0°). Positives Vorzeichen
+// = Drehung weg vom Ziel (Rückschwungrichtung bei Rechtshändern), negatives
+// Vorzeichen = Drehung zum Ziel hin (Durchschwungrichtung).
+// „forwardFlexion“ = globale Vorbeuge der gesamten Säule (Hip-Hinge, in Grad,
+// positiv = nach vorn). „lateralFlexion“ = globale seitliche Neigung (Grad).
+// Diese Winkelwerte sind didaktische Näherungen aus mehreren Quellen, keine
+// exakten Messdaten einer einzelnen Studie an einer Einzelperson.
+// ----------------------------------------------------------------------------
+export const GOLF_SWING_PHASES = [
+  {
+    id: 'address',
+    label: 'Ansprechposition',
+    sub: 'Address',
+    axial: { cervical: 0, thoracic: 0, lumbar: 0 },
+    forwardFlexion: 32,
+    lateralFlexion: 0,
+    facts: [
+      'Der Oberkörper ist über ein Vorbeugen in den Hüften (Hip-Hinge) um ca. 30–35° nach vorn geneigt – die Wirbelsäule selbst bleibt dabei weitgehend neutral und kaum rotiert.',
+      'Schulter- und Beckenachse stehen noch nahezu parallel: Der „X-Faktor“ (Rotationsunterschied zwischen Brust- und Lendenwirbelsäule) ist minimal.',
+    ],
+    sources: [
+      { label: 'ATOS Kliniken', url: 'https://news.atos-kliniken.com/orthopaedische-spaetschaeden-bei-golfspielerinnen-und-spielern/' },
+    ],
+  },
+  {
+    id: 'backswing',
+    label: 'Rückschwung – oberer Punkt',
+    sub: 'Backswing Top',
+    axial: { cervical: -8, thoracic: 46, lumbar: 22 },
+    forwardFlexion: 34,
+    lateralFlexion: -4,
+    facts: [
+      'Die Brustwirbelsäule dreht am weitesten mit – die Rumpfdrehung erreicht hier näherungsweise 45°.',
+      'Die Lendenwirbelsäule lässt konstruktionsbedingt nur geringe Rotation zu und bleibt deutlich hinter der Brustwirbelsäule zurück.',
+      'Die Halswirbelsäule dreht gegenläufig zur Brustwirbelsäule mit, damit der Blick fest auf den Ball fixiert bleiben kann.',
+    ],
+    sources: [
+      { label: 'golfdoc.ch', url: 'https://www.golfdoc.ch/ruecken.htm' },
+      { label: 'Orthozentrum Bergstraße', url: 'https://orthozentrum-bergstrasse.de/behandlung/rueckenschmerzen-beim-golf/' },
+      { label: 'Schulthess Klinik', url: 'https://www.youtube.com/watch?v=tmxEsBiS_Zw' },
+    ],
+  },
+  {
+    id: 'downswing',
+    label: 'Abschwung – X-Faktor-Stretch',
+    sub: 'Downswing',
+    axial: { cervical: -5, thoracic: 34, lumbar: -8 },
+    forwardFlexion: 30,
+    lateralFlexion: 8,
+    facts: [
+      'Becken und Lendenwirbelsäule beginnen sich bereits zum Ziel zu drehen, während die Brustwirbelsäule noch in der Rückschwungrotation „nachläuft“ – dieser kurzzeitig maximale Rotationsunterschied wird als „X-Faktor-Stretch“ bezeichnet.',
+      'Gleichzeitig nimmt die seitliche Neigung (Lateralflexion) zu, was Bandscheiben und Facettengelenke zusätzlich belastet.',
+    ],
+    sources: [
+      { label: 'Hirslanden Blog', url: 'https://www.hirslanden.ch/de/hirslandenblog/medizin/-der-golfschwung-ist-ein-komplizierter-bewegungsablauf-.html' },
+      { label: 'ScienceDirect', url: 'https://www.sciencedirect.com/science/article/abs/pii/S0949328X13000525' },
+    ],
+  },
+  {
+    id: 'impact',
+    label: 'Ballkontakt',
+    sub: 'Impact',
+    axial: { cervical: 0, thoracic: -10, lumbar: -16 },
+    forwardFlexion: 28,
+    lateralFlexion: 12,
+    facts: [
+      'Im Moment des Ballkontakts sind Rotation, seitliche Neigung und axiale Kompression der Wirbelsäule gleichzeitig am größten – biomechanisch die am stärksten belastete Phase des Schwungs.',
+      'Rumpf und Becken haben sich inzwischen fast synchron zurück in Richtung Ziel gedreht.',
+    ],
+    sources: [
+      { label: 'Hirslanden Blog', url: 'https://www.hirslanden.ch/de/hirslandenblog/medizin/-der-golfschwung-ist-ein-komplizierter-bewegungsablauf-.html' },
+      { label: 'ScienceDirect', url: 'https://www.sciencedirect.com/science/article/abs/pii/S0949328X13000525' },
+    ],
+  },
+  {
+    id: 'finish',
+    label: 'Durchschwung – Finish',
+    sub: 'Follow-Through',
+    axial: { cervical: 18, thoracic: -58, lumbar: -34 },
+    forwardFlexion: -14,
+    lateralFlexion: -10,
+    facts: [
+      'Der Oberkörper dreht sich vollständig zum Ziel und richtet sich auf – aus der Vorbeuge der Ansprechposition wird eine deutliche Rückneigung (Hyperlordose) der Lendenwirbelsäule.',
+      'Diese endgradige Streckung bei gleichzeitiger Rotation gilt als eine der Hauptbelastungen für die unteren Bandscheiben im Golfsport.',
+    ],
+    sources: [
+      { label: 'golfdoc.ch', url: 'https://www.golfdoc.ch/ruecken.htm' },
+      { label: 'ATOS Kliniken', url: 'https://news.atos-kliniken.com/orthopaedische-spaetschaeden-bei-golfspielerinnen-und-spielern/' },
+    ],
+  },
+];
