@@ -361,6 +361,11 @@ svg { display: block; }
 
 .view-controls { position: absolute; bottom: 1rem; right: 1rem; display: flex; flex-direction: column; gap: 0.4rem; z-index: 10; }
 .view-controls .icon-btn { background: var(--color-surface); box-shadow: var(--shadow-md); }
+.icon-btn.is-active {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+.icon-btn.is-active:hover { background: var(--color-primary-hover); color: var(--color-text-inverse); }
 
 .hint-chip {
   position: absolute; bottom: 1rem; left: 1rem; z-index: 10;

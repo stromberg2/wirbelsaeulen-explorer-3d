@@ -253,7 +253,7 @@ function createLabelElement(text, colorHex) {
 }
 
 const structureLabelObjects = {};
-(function buildStructureLabels() {
+const structureLabelAnchors = (function buildStructureLabels() {
   const l3 = spineModel.vertebrae.get('L3');
   const l4l5Disc = spineModel.discs.get('L4-L5') || spineModel.discs.get('L3-L4');
 
@@ -279,7 +279,22 @@ const structureLabelObjects = {};
     scene.add(labelObj);
     structureLabelObjects[a.key] = labelObj;
   });
+
+  return anchors;
 })();
+
+// Position der Strukturbeschriftungen neu berechnen -- wichtig nach einer
+// Y-Achsen-Spiegelung des Modells, da diese Labels als CSS2DObjects direkt
+// an der Scene hängen (nicht am spineModel.root) und ihre Anker-Weltposition
+// sich beim Spiegeln ändert.
+const _tmpLabelWorldPos = new THREE.Vector3();
+function recomputeStructureLabelPositions() {
+  structureLabelAnchors.forEach((a) => {
+    a.obj3d.getWorldPosition(_tmpLabelWorldPos);
+    _tmpLabelWorldPos.add(a.extraOffset);
+    structureLabelObjects[a.key].position.copy(_tmpLabelWorldPos);
+  });
+}
 
 const labelCategoryChecked = {};
 Object.keys(STRUCTURES).forEach((k) => (labelCategoryChecked[k] = true));
@@ -322,8 +337,18 @@ spineModel.curveGuides.forEach((g, regionId) => {
   const obj = new CSS2DObject(el);
   obj.position.copy(g.apexPoint);
   scene.add(obj);
-  curveApexLabels.push({ obj, regionId });
+  curveApexLabels.push({ obj, regionId, apexMarker: g.apexMarker });
 });
+
+// Apex-Beschriftungen folgen dem Apex-Marker-Mesh (Kind von guideGroup/root) --
+// nach einer Y-Spiegelung muss ihre Weltposition neu ausgelesen werden.
+function recomputeCurveApexLabelPositions() {
+  curveApexLabels.forEach(({ obj, apexMarker }) => {
+    if (!apexMarker) return;
+    apexMarker.getWorldPosition(_tmpLabelWorldPos);
+    obj.position.copy(_tmpLabelWorldPos);
+  });
+}
 
 let curvatureLabelsChecked = true;
 
@@ -758,6 +783,31 @@ document.getElementById('btn-golf').addEventListener('click', () => setAppMode('
 document.getElementById('view-lateral').addEventListener('click', () => focusOnBox(activeRegion ? getRegionBox(activeRegion) : getWholeSpineBox(), LATERAL_DIR));
 document.getElementById('view-front').addEventListener('click', () => focusOnBox(activeRegion ? getRegionBox(activeRegion) : getWholeSpineBox(), FRONT_DIR));
 document.getElementById('view-reset').addEventListener('click', resetView);
+
+// ----------------------------------------------------------------------------
+// Vertikale Spiegelung (Y-Achse) -- stellt das Modell auf den Kopf, z.B. für
+// eine alternative Betrachtungsperspektive. Nutzt eine negative Skalierung
+// auf root.scale.y; Three.js kompensiert die dadurch invertierte Dreiecks-
+// Wickelrichtung automatisch anhand der Matrixdeterminante, daher bleibt die
+// Beleuchtung korrekt. Alle Meshes (Wirbel, Bandscheiben, Krümmungs-Guides)
+// sind Kinder von spineModel.root und spiegeln sich automatisch mit; nur die
+// CSS2D-Beschriftungen hängen an der Scene und werden separat neu berechnet.
+let mirroredY = false;
+const viewMirrorBtn = document.getElementById('view-mirror-y');
+
+function applyMirrorState() {
+  spineModel.root.scale.y = mirroredY ? -1 : 1;
+  spineModel.root.updateMatrixWorld(true);
+  recomputeStructureLabelPositions();
+  recomputeCurveApexLabelPositions();
+  viewMirrorBtn.classList.toggle('is-active', mirroredY);
+  viewMirrorBtn.setAttribute('aria-pressed', String(mirroredY));
+}
+
+viewMirrorBtn.addEventListener('click', () => {
+  mirroredY = !mirroredY;
+  applyMirrorState();
+});
 
 // ----------------------------------------------------------------------------
 // Render-Loop
